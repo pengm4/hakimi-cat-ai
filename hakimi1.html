@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hakimi Cat AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #fff7f4;
+      --bg-soft: #fff1ec;
+      --card: #ffffff;
+      --line: #f3ddd3;
+      --text: #3f342f;
+      --muted: #8d7b72;
+      --primary: #f08a5d;
+      --primary-dark: #e67848;
+      --soft-accent: #fff1ea;
+      --shadow: 0 18px 40px rgba(240, 138, 93, 0.12);
+      --radius-lg: 28px;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.95), transparent 30%),
+        linear-gradient(180deg, var(--bg), var(--bg-soft));
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #fffdfa, #fff3ed);
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 22px;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #fff1ea;
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 38px;
+      line-height: 1.15;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 15px;
+      max-width: 720px;
+    }
+
+    .hero-mini {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero-mini span {
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .lang-switch {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.98fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2,
+    .section-head h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .tag {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: #fff6f1;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .upload-wrapper {
+      margin-top: 8px;
+    }
+
+    .upload-area {
+      border: 2px dashed #efbfaa;
+      border-radius: 24px;
+      padding: 24px 20px;
+      text-align: center;
+      background: linear-gradient(180deg, #fffdfa, #fff7f2);
+      cursor: pointer;
+      transition: 0.2s ease;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+      background: linear-gradient(180deg, #fffaf7, #fff2eb);
+    }
+
+    .upload-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: #fff1e9;
+      font-size: 34px;
+    }
+
+    .upload-area h2 {
+      margin: 0 0 8px;
+      color: var(--primary-dark);
+      font-size: 25px;
+    }
+
+    .upload-area p {
+      margin: 6px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .upload-tags {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .upload-tag {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid #f1dfd7;
+      color: #9a8479;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    button,
+    .fake-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .primary-btn,
+    .fake-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(240, 138, 93, 0.18);
+    }
+
+    .secondary-btn {
+      background: #f8f3f0;
+      color: var(--text);
+      border: 1px solid #efe0d8;
+    }
+
+    .preview-box {
+      margin-top: 22px;
+      display: none;
+    }
+
+    .preview-box.active { display: block; }
+
+    .preview-shell {
+      position: relative;
+      padding: 12px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #fff, #fff5ef);
+      border: 1px solid #f4e2d8;
+    }
+
+    .preview-box img {
+      width: 100%;
+      max-height: 430px;
+      object-fit: contain;
+      border-radius: 16px;
+      background: #fffaf7;
+      display: block;
+    }
+
+    .file-chip {
+      position: absolute;
+      left: 18px;
+      bottom: 18px;
+      max-width: calc(100% - 36px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: rgba(63, 52, 47, 0.72);
+      color: #fff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .status {
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fff5ef;
+      border: 1px solid #f6ddd1;
+      color: #9c6d58;
+      line-height: 1.7;
+      margin-bottom: 16px;
+      min-height: 54px;
+    }
+
+    .result-main {
+      border: 1px solid #f6e0d5;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #fffdfa, #fff6f0);
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+    }
+
+    .result-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .result-highlight {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #fff3eb, #ffe8dc);
+      border: 1px solid #f6d3c2;
+      margin-bottom: 14px;
+    }
+
+    .result-icon {
+      width: 58px;
+      height: 58px;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.72);
+      font-size: 28px;
+    }
+
+    .result-value {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin: 0 0 4px;
+      line-height: 1.1;
+    }
+
+    .result-subtext {
+      font-size: 14px;
+      color: #8e6e60;
+      font-weight: 700;
+    }
+
+    .confidence {
+      font-size: 16px;
+      color: #68564d;
+    }
+
+    .result-extra {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .mini-info {
+      background: rgba(255,255,255,0.84);
+      border: 1px solid #f1e3db;
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .mini-info-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .mini-info-value {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .prob-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .prob-item {
+      background: #fffdfb;
+      border: 1px solid #f1e4dc;
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+
+    .prob-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 9px;
+      font-size: 14px;
+    }
+
+    .prob-name { font-weight: 700; }
+    .prob-percent { color: var(--primary-dark); font-weight: 700; }
+
+    .bar {
+      width: 100%;
+      height: 11px;
+      background: #f4ebe6;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #f7b08a, var(--primary));
+      border-radius: 999px;
+      transition: width 0.35s ease;
+    }
+
+    .history-panel { margin-top: 16px; }
+
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .history-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .history-clear {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #eadad0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .history-empty {
+      background: #fffdfb;
+      border: 1px dashed #eadfd8;
+      border-radius: 16px;
+      color: #9c8b82;
+      text-align: center;
+      padding: 18px 14px;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      align-items: center;
+      background: #fffdfa;
+      border: 1px solid #f0e3dc;
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .history-thumb {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff3ec;
+      border: 1px solid #f2e0d6;
+      display: grid;
+      place-items: center;
+    }
+
+    .history-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .history-thumb-empty { font-size: 26px; }
+    .history-main { min-width: 0; }
+
+    .history-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .history-name { font-weight: 800; font-size: 16px; }
+
+    .history-tag {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #fff1ea;
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .history-meta {
+      color: #8a7870;
+      font-size: 13px;
+      line-height: 1.7;
+      word-break: break-all;
+    }
+
+    .hidden-img {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      width: 224px;
+      height: 224px;
+      object-fit: cover;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #9a8880;
+    }
+
+    input[type="file"] { display: none; }
+
+    @media (max-width: 1024px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px 12px 32px; }
+      .hero, .card { padding: 18px; border-radius: 24px; }
+      .hero h1 { font-size: 30px; }
+      .result-extra { grid-template-columns: 1fr; }
+      .history-item { grid-template-columns: 1fr; }
+      .history-thumb { width: 100%; height: 150px; }
+      .result-highlight { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-badge" id="heroBadge">Teachable Machine 模型识别</div>
+          <h1 id="heroTitle">Hakimi Cat AI</h1>
+          <p id="heroDesc">上传图片后可直接识别猫咪类型，并保留最近的识别记录。</p>
+        </div>
+        <div class="hero-mini">
+          <span id="mini1">4+1 类别</span>
+          <span id="mini2">历史记录</span>
+          <span id="mini3">前端直连</span>
+        </div>
+        <div class="lang-switch">
+          <button class="secondary-btn" id="langZhBtn" type="button">中文</button>
+          <button class="secondary-btn" id="langKoBtn" type="button">한국어</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="card">
+        <div class="section-head">
+          <h2 id="uploadTitle">上传图片</h2>
+          <div class="tag">JPG / PNG / WEBP</div>
+        </div>
+
+        <div class="upload-wrapper">
+          <label class="upload-area" id="uploadArea" for="imageInput">
+            <div class="upload-icon">🐾</div>
+            <h2 id="uploadAreaTitle">点击或拖拽上传</h2>
+            <p id="uploadDesc">建议使用清晰、主体明显的猫咪图片</p>
+
+            <div class="upload-tags">
+              <span class="upload-tag" id="tag1">奶牛猫</span>
+              <span class="upload-tag" id="tag2">橘猫</span>
+              <span class="upload-tag" id="tag3">狸花猫</span>
+              <span class="upload-tag" id="tag4">三花猫</span>
+              <span class="upload-tag" id="tag5">其他</span>
+            </div>
+
+            <div class="btn-row">
+              <span class="fake-btn" id="chooseImageText">选择图片</span>
+            </div>
+          </label>
+        </div>
+
+        <input type="file" id="imageInput" accept="image/*" />
+
+        <div class="preview-box" id="previewBox">
+          <div class="preview-shell">
+            <img id="previewImage" alt="预览图片" />
+            <div class="file-chip" id="fileChip">未选择文件</div>
+          </div>
+
+          <div class="btn-row">
+            <button class="primary-btn" id="predictBtn">开始识别</button>
+            <button class="secondary-btn" id="resetBtn">重新选择</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h3 id="resultTitle">识别结果</h3>
+          <div class="tag" id="modelState">模型加载中...</div>
+        </div>
+
+        <div class="status" id="statusBox">正在加载模型，请稍候...</div>
+
+        <div class="result-main">
+          <div class="result-label" id="resultLabel">预测类别</div>
+          <div class="result-highlight">
+            <div class="result-icon">🐱</div>
+            <div>
+              <div class="result-value" id="resultClass">--</div>
+              <div class="result-subtext" id="resultSubtext">当前识别结果</div>
+            </div>
+          </div>
+          <div class="confidence" id="resultConfidence">置信度：--</div>
+
+          <div class="result-extra">
+            <div class="mini-info">
+              <div class="mini-info-label" id="secondBestLabel">次高可能类别</div>
+              <div class="mini-info-value" id="secondBest">--</div>
+            </div>
+            <div class="mini-info">
+              <div class="mini-info-label" id="judgeLabel">识别状态</div>
+              <div class="mini-info-value" id="judgeText">等待识别</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="prob-list" id="probList"></div>
+
+        <div class="history-panel">
+          <div class="history-head">
+            <div class="history-title" id="historyTitle">历史记录</div>
+            <button class="history-clear" id="clearHistoryBtn">清空</button>
+          </div>
+          <div class="history-list" id="historyList">
+            <div class="history-empty">暂无识别记录</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <img id="hiddenImage" class="hidden-img" alt="预测图片" />
+
+    <div class="footer-note" id="footerNote">hakimi-cat-ai.vercel.app</div>
+  </div>
+
+  <script>
+    const MODEL_BASE_URL = "https://teachablemachine.withgoogle.com/models/vddTpy6hw/";
+    const OTHER_THRESHOLD = 0.6;
+    const LABEL_MAP = {
+      'black white cat': '奶牛猫',
+      'orange cat': '橘猫',
+      'orgnge cat': '橘猫',
+      'tabby cat': '狸花猫',
+      'calico cat': '三花猫',
+      'other': '其他',
+      'others': '其他',
+      'other cat': '其他'
+    };
+    const KNOWN_CLASSES = ['奶牛猫', '橘猫', '狸花猫', '三花猫'];
+
+    const I18N = {
+      zh: {
+        title: 'Hakimi Cat AI',
+        badge: 'Teachable Machine 模型识别',
+        desc: '上传图片后可直接识别猫咪类型，并保留最近的识别记录。',
+        mini1: '4+1 类别',
+        mini2: '历史记录',
+        mini3: '前端直连',
+        uploadTitle: '上传图片',
+        uploadAreaTitle: '点击或拖拽上传',
+        uploadDesc: '建议使用清晰、主体明显的猫咪图片',
+        chooseImage: '选择图片',
+        resultTitle: '识别结果',
+        resultLabel: '预测类别',
+        resultSubtext: '当前识别结果',
+        confidence: '置信度',
+        secondBestLabel: '次高可能类别',
+        judgeLabel: '识别状态',
+        historyTitle: '历史记录',
+        clear: '清空',
+        empty: '暂无识别记录',
+        footer: 'hakimi-cat-ai.vercel.app',
+        buttons: { predict: '开始识别', predicting: '识别中...', reset: '重新选择' },
+        labels: { fileName: '文件名', time: '时间' },
+        statuses: {
+          loadingModel: '正在加载模型，请稍候...',
+          modelLoading: '模型加载中...',
+          modelReady: '模型已就绪',
+          modelLoaded: '模型加载完成，请上传图片。',
+          modelFailed: '模型加载失败，请检查模型链接。',
+          invalidFile: '请选择有效的图片文件。',
+          imageLoaded: '图片已加载，点击“开始识别”即可。',
+          needUpload: '请先上传图片。',
+          imagePreparing: '图片还在准备中，请稍后再试。',
+          recognizing: '正在识别中，请稍候...',
+          done: '识别完成。',
+          failed: '识别失败，请检查模型或图片内容后重试。',
+          wait: '等待识别',
+          lowConfidence: '未识别为已知猫咪类型',
+          completed: '识别完成'
+        },
+        classes: {
+          '奶牛猫': '奶牛猫', '橘猫': '橘猫', '狸花猫': '狸花猫', '三花猫': '三花猫', '其他': '未识别为已知猫咪类型', '未知': '未知', '--': '--'
+        }
+      },
+      ko: {
+        title: '고양이 분류 시스템',
+        badge: 'Teachable Machine 모델 인식',
+        desc: '이미지를 업로드하면 고양이 종류를 바로 인식하고 최근 기록도 저장합니다.',
+        mini1: '4+1 분류',
+        mini2: '기록 저장',
+        mini3: '프론트엔드 직결',
+        uploadTitle: '이미지 업로드',
+        uploadAreaTitle: '클릭 또는 드래그 업로드',
+        uploadDesc: '선명하고 고양이 대상이 잘 보이는 이미지를 사용하세요',
+        chooseImage: '이미지 선택',
+        resultTitle: '인식 결과',
+        resultLabel: '예측 종류',
+        resultSubtext: '현재 인식 결과',
+        confidence: '신뢰도',
+        secondBestLabel: '두 번째 후보',
+        judgeLabel: '인식 상태',
+        historyTitle: '기록',
+        clear: '삭제',
+        empty: '기록이 없습니다',
+        footer: '고양이 인식 웹페이지',
+        buttons: { predict: '인식 시작', predicting: '인식 중...', reset: '다시 선택' },
+        labels: { fileName: '파일명', time: '시간' },
+        statuses: {
+          loadingModel: '모델을 불러오는 중입니다. 잠시만 기다려 주세요...',
+          modelLoading: '모델 로딩 중...',
+          modelReady: '모델 준비 완료',
+          modelLoaded: '모델 로드 완료. 이미지를 업로드해 주세요.',
+          modelFailed: '모델 로드 실패. 모델 링크를 확인해 주세요.',
+          invalidFile: '유효한 이미지 파일을 선택해 주세요.',
+          imageLoaded: '이미지가 로드되었습니다. “인식 시작”을 눌러 주세요.',
+          needUpload: '먼저 이미지를 업로드해 주세요.',
+          imagePreparing: '이미지를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.',
+          recognizing: '인식 중입니다. 잠시만 기다려 주세요...',
+          done: '인식이 완료되었습니다.',
+          failed: '인식에 실패했습니다. 모델이나 이미지를 확인한 뒤 다시 시도해 주세요.',
+          wait: '인식 대기',
+          lowConfidence: '학습된 고양이 유형으로 인식되지 않음',
+          completed: '인식 완료'
+        },
+        classes: {
+          '奶牛猫': '젖소무늬 고양이', '橘猫': '치즈태비', '狸花猫': '태비 고양이', '三花猫': '삼색 고양이', '其他': '학습되지 않은 고양이 유형', '未知': '알 수 없음', '--': '--'
+        }
+      }
+    };
+
+    let currentLang = 'zh';
+    let lastStatusKey = 'loadingModel';
+
+    const imageInput = document.getElementById('imageInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const previewBox = document.getElementById('previewBox');
+    const previewImage = document.getElementById('previewImage');
+    const hiddenImage = document.getElementById('hiddenImage');
+    const predictBtn = document.getElementById('predictBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const statusBox = document.getElementById('statusBox');
+    const resultClass = document.getElementById('resultClass');
+    const resultConfidence = document.getElementById('resultConfidence');
+    const resultSubtext = document.getElementById('resultSubtext');
+    const probList = document.getElementById('probList');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const fileChip = document.getElementById('fileChip');
+    const secondBest = document.getElementById('secondBest');
+    const judgeText = document.getElementById('judgeText');
+    const modelState = document.getElementById('modelState');
+    const langZhBtn = document.getElementById('langZhBtn');
+    const langKoBtn = document.getElementById('langKoBtn');
+
+    let model = null;
+    let selectedFile = null;
+    let imageReady = false;
+    let historyRecords = [];
+    let currentObjectUrl = null;
+    let lastPredictions = [];
+
+    function t() {
+      return I18N[currentLang];
+    }
+
+    function normalizeModelLabel(label) {
+      if (!label) return label;
+      const cleanLabel = String(label).trim().toLowerCase();
+      return LABEL_MAP[cleanLabel] || label;
+    }
+
+    function translateClassName(name) {
+      return t().classes[name] || name;
+    }
+
+    function setStatus(key) {
+      lastStatusKey = key;
+      statusBox.textContent = t().statuses[key] || key;
+    }
+
+    function setModelState(key) {
+      modelState.textContent = t().statuses[key] || key;
+    }
+
+    function refreshStaticTexts() {
+      document.title = t().title;
+      document.getElementById('heroBadge').textContent = t().badge;
+      document.getElementById('heroTitle').textContent = t().title;
+      document.getElementById('heroDesc').textContent = t().desc;
+      document.getElementById('mini1').textContent = t().mini1;
+      document.getElementById('mini2').textContent = t().mini2;
+      document.getElementById('mini3').textContent = t().mini3;
+      document.getElementById('uploadTitle').textContent = t().uploadTitle;
+      document.getElementById('uploadAreaTitle').textContent = t().uploadAreaTitle;
+      document.getElementById('uploadDesc').textContent = t().uploadDesc;
+      document.getElementById('chooseImageText').textContent = t().chooseImage;
+      document.getElementById('resultTitle').textContent = t().resultTitle;
+      document.getElementById('resultLabel').textContent = t().resultLabel;
+      document.getElementById('resultSubtext').textContent = t().resultSubtext;
+      document.getElementById('secondBestLabel').textContent = t().secondBestLabel;
+      document.getElementById('judgeLabel').textContent = t().judgeLabel;
+      document.getElementById('historyTitle').textContent = t().historyTitle;
+      document.getElementById('footerNote').textContent = t().footer;
+      clearHistoryBtn.textContent = t().clear;
+      predictBtn.textContent = predictBtn.disabled ? t().buttons.predicting : t().buttons.predict;
+      resetBtn.textContent = t().buttons.reset;
+      document.getElementById('tag1').textContent = translateClassName('奶牛猫');
+      document.getElementById('tag2').textContent = translateClassName('橘猫');
+      document.getElementById('tag3').textContent = translateClassName('狸花猫');
+      document.getElementById('tag4').textContent = translateClassName('三花猫');
+      document.getElementById('tag5').textContent = translateClassName('其他');
+      resultConfidence.textContent = `${t().confidence}：${resultConfidence.dataset.value || '--'}`;
+      if (resultClass.dataset.raw) resultClass.textContent = translateClassName(resultClass.dataset.raw);
+      if (secondBest.dataset.raw) {
+        secondBest.textContent = `${translateClassName(secondBest.dataset.raw)} ${secondBest.dataset.percent || ''}`.trim();
+      }
+      if (judgeText.dataset.key) judgeText.textContent = t().statuses[judgeText.dataset.key] || judgeText.dataset.key;
+      setStatus(lastStatusKey);
+      renderHistory();
+      if (lastPredictions.length) renderProbabilities(lastPredictions, resultClass.dataset.raw || '');
+    }
+
+    function resetResult() {
+      resultClass.textContent = '--';
+      resultClass.dataset.raw = '--';
+      resultConfidence.textContent = `${t().confidence}：--`;
+      resultConfidence.dataset.value = '--';
+      secondBest.textContent = '--';
+      secondBest.dataset.raw = '--';
+      secondBest.dataset.percent = '';
+      judgeText.textContent = t().statuses.wait;
+      judgeText.dataset.key = 'wait';
+      probList.innerHTML = '';
+      resultSubtext.textContent = t().resultSubtext;
+    }
+
+    function formatTime(date = new Date()) {
+      return date.toLocaleString(currentLang === 'ko' ? 'ko-KR' : 'zh-CN', {
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
+
+    function renderHistory() {
+      if (!historyRecords.length) {
+        historyList.innerHTML = `<div class="history-empty">${t().empty}</div>`;
+        return;
+      }
+
+      historyList.innerHTML = historyRecords.map(item => `
+        <div class="history-item">
+          <div class="history-thumb">
+            ${item.thumb ? `<img src="${item.thumb}" alt="${translateClassName(item.result)}">` : `<div class="history-thumb-empty">🐱</div>`}
+          </div>
+          <div class="history-main">
+            <div class="history-top">
+              <div class="history-name">${translateClassName(item.result)}</div>
+              <div class="history-tag">${item.confidence}</div>
+            </div>
+            <div class="history-meta">${t().labels.fileName}：${item.fileName}</div>
+            <div class="history-meta">${t().labels.time}：${item.time}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function addHistoryRecord(fileName, result, confidence, thumb) {
+      historyRecords.unshift({ fileName, result, confidence, thumb, time: formatTime() });
+      if (historyRecords.length > 10) historyRecords = historyRecords.slice(0, 10);
+      renderHistory();
+    }
+
+    async function loadModel() {
+      try {
+        setStatus('loadingModel');
+        setModelState('modelLoading');
+        model = await tmImage.load(MODEL_BASE_URL + 'model.json', MODEL_BASE_URL + 'metadata.json');
+        setStatus('modelLoaded');
+        setModelState('modelReady');
+      } catch (error) {
+        console.error(error);
+        setStatus('modelFailed');
+        setModelState('modelFailed');
+      }
+    }
+
+    function renderProbabilities(predictions = [], finalResult = '') {
+      if (finalResult === '其他') {
+        probList.innerHTML = '';
+        return;
+      }
+
+      probList.innerHTML = '';
+      const predictionMap = {};
+      predictions.forEach(item => {
+        const normalizedName = normalizeModelLabel(item.className);
+        predictionMap[normalizedName] = item.probability;
+      });
+
+      KNOWN_CLASSES.forEach(className => {
+        const probability = Number(predictionMap[className] || 0);
+        const percent = Math.max(0, Math.min(100, probability * 100));
+        const item = document.createElement('div');
+        item.className = 'prob-item';
+        item.innerHTML = `
+          <div class="prob-head">
+            <span class="prob-name">${translateClassName(className)}</span>
+            <span class="prob-percent">${percent.toFixed(2)}%</span>
+          </div>
+          <div class="bar">
+            <div class="bar-fill" style="width: ${percent}%;"></div>
+          </div>
+        `;
+        probList.appendChild(item);
+      });
+    }
+
+    function getDisplayResult(predictions) {
+      const normalizedPredictions = predictions.map(item => ({
+        className: normalizeModelLabel(item.className),
+        probability: item.probability
+      }));
+
+      const sorted = [...normalizedPredictions].sort((a, b) => b.probability - a.probability);
+      const top = sorted[0] || { className: '未知', probability: 0 };
+      const second = sorted[1] || { className: '--', probability: 0 };
+      const isKnownClass = KNOWN_CLASSES.includes(top.className);
+      const result = (!isKnownClass || top.probability < OTHER_THRESHOLD) ? '其他' : top.className;
+      const judge = result === '其他' ? 'lowConfidence' : 'completed';
+      return { top, second, result, judge };
+    }
+
+    function showPreview(file) {
+      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = URL.createObjectURL(file);
+      previewImage.src = currentObjectUrl;
+      hiddenImage.src = currentObjectUrl;
+      fileChip.textContent = file.name;
+      previewBox.classList.add('active');
+      imageReady = false;
+    }
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        setStatus('invalidFile');
+        return;
+      }
+      selectedFile = file;
+      resetResult();
+      showPreview(file);
+      setStatus('imageLoaded');
+    }
+
+    hiddenImage.onload = () => { imageReady = true; };
+
+    async function predictImage() {
+      if (!model) {
+        setStatus('loadingModel');
+        return;
+      }
+      if (!selectedFile) {
+        setStatus('needUpload');
+        return;
+      }
+      if (!imageReady) {
+        setStatus('imagePreparing');
+        return;
+      }
+
+      try {
+        setStatus('recognizing');
+        predictBtn.disabled = true;
+        predictBtn.textContent = t().buttons.predicting;
+
+        const predictions = await model.predict(hiddenImage);
+        lastPredictions = predictions;
+        const { top, second, result, judge } = getDisplayResult(predictions);
+
+        resultClass.dataset.raw = result;
+        resultClass.textContent = translateClassName(result);
+        resultConfidence.dataset.value = `${(top.probability * 100).toFixed(2)}%`;
+        resultConfidence.textContent = `${t().confidence}：${resultConfidence.dataset.value}`;
+        secondBest.dataset.raw = second.className;
+        secondBest.dataset.percent = `${(second.probability * 100).toFixed(2)}%`;
+        secondBest.textContent = `${translateClassName(second.className)} ${secondBest.dataset.percent}`;
+        judgeText.dataset.key = judge;
+        judgeText.textContent = t().statuses[judge];
+        resultSubtext.textContent = result === '其他' ? translateClassName('其他') : t().resultSubtext;
+
+        renderProbabilities(predictions, result);
+        addHistoryRecord(selectedFile.name, result, `${(top.probability * 100).toFixed(2)}%`, previewImage.src);
+        setStatus('done');
+      } catch (error) {
+        console.error(error);
+        setStatus('failed');
+      } finally {
+        predictBtn.disabled = false;
+        predictBtn.textContent = t().buttons.predict;
+      }
+    }
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      handleFile(file);
+    });
+
+    predictBtn.addEventListener('click', predictImage);
+
+    resetBtn.addEventListener('click', () => {
+      selectedFile = null;
+      imageInput.value = '';
+      previewBox.classList.remove('active');
+      previewImage.src = '';
+      hiddenImage.src = '';
+      fileChip.textContent = '未选择文件';
+      lastPredictions = [];
+      resetResult();
+      setStatus('needUpload');
+    });
+
+    clearHistoryBtn.addEventListener('click', () => {
+      historyRecords = [];
+      renderHistory();
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      handleFile(file);
+    });
+
+    langZhBtn.addEventListener('click', () => {
+      currentLang = 'zh';
+      refreshStaticTexts();
+    });
+
+    langKoBtn.addEventListener('click', () => {
+      currentLang = 'ko';
+      refreshStaticTexts();
+    });
+
+    refreshStaticTexts();
+    loadModel();
+  </script>
+</body>
+</html>
